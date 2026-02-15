@@ -3,7 +3,7 @@
 Full-stack rent-a-car app with React+TypeScript frontend and Go+Gin backend.
 
 ## Demo Credentials
-- admin / Admin123!
+- admin / admin
 - user1 / User123!
 - user2 / User123!
 

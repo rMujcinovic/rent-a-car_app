@@ -26,6 +26,19 @@ func env(k, d string) string {
 	return v
 }
 
+func corsOrigins() []string {
+	raw := env("CORS_ORIGIN", "http://localhost:5173,http://127.0.0.1:5173")
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
 func runMigrations(db *sql.DB) error {
 	files, err := filepath.Glob("migrations/*.sql")
 	if err != nil {
@@ -41,23 +54,45 @@ func runMigrations(db *sql.DB) error {
 }
 func seedDev(db *sql.DB) error {
 	var c int
-	_ = db.QueryRow("SELECT COUNT(*) FROM users").Scan(&c)
-	if c > 0 {
-		return nil
+	if err := db.QueryRow("SELECT COUNT(*) FROM users").Scan(&c); err != nil {
+		return err
 	}
-	seedUsers := []struct{ U, P, R string }{{"admin", "Admin123!", "admin"}, {"user1", "User123!", "user"}, {"user2", "User123!", "user"}}
-	for _, u := range seedUsers {
-		h, _ := bcrypt.GenerateFromPassword([]byte(u.P), bcrypt.DefaultCost)
-		_, _ = db.Exec(`INSERT INTO users(id, username, password_hash, role) VALUES(lower(hex(randomblob(16))),?,?,?)`, u.U, string(h), u.R)
-	}
-	extra := []string{"GPS|8", "Child seat|6", "Additional driver|12", "Insurance|15"}
-	for _, e := range extra {
-		p := strings.Split(e, "|")
-		_, _ = db.Exec(`INSERT INTO extras(id,name,price_per_day) VALUES(lower(hex(randomblob(16))),?,?)`, p[0], p[1])
-	}
-	_, _ = db.Exec(`INSERT INTO cars(id,brand,model,year,category,transmission,fuel,seats,daily_price,status,mileage,description,images) VALUES
+
+	if c == 0 {
+		seedUsers := []struct{ U, P, R string }{{"admin", "admin", "admin"}, {"user1", "admin", "user"}, {"user2", "admin", "user"}}
+		for _, u := range seedUsers {
+			h, _ := bcrypt.GenerateFromPassword([]byte(u.P), bcrypt.DefaultCost)
+			_, _ = db.Exec(`INSERT INTO users(id, username, password_hash, role) VALUES(lower(hex(randomblob(16))),?,?,?)`, u.U, string(h), u.R)
+		}
+		extra := []string{"GPS|8", "Child seat|6", "Additional driver|12", "Insurance|15"}
+		for _, e := range extra {
+			p := strings.Split(e, "|")
+			_, _ = db.Exec(`INSERT INTO extras(id,name,price_per_day) VALUES(lower(hex(randomblob(16))),?,?)`, p[0], p[1])
+		}
+		_, _ = db.Exec(`INSERT INTO cars(id,brand,model,year,category,transmission,fuel,seats,daily_price,status,mileage,description,images) VALUES
 	(lower(hex(randomblob(16))),'Toyota','Corolla',2022,'sedan','automatic','gasoline',5,55,'available',32000,'Reliable city sedan','["https://images.unsplash.com/photo-1494976388531-d1058494cdd8"]'),
 	(lower(hex(randomblob(16))),'BMW','X5',2023,'suv','automatic','diesel',5,120,'available',12000,'Premium SUV','["https://images.unsplash.com/photo-1555215695-3004980ad54e"]')`)
+		return nil
+	}
+
+	adminHash, err := bcrypt.GenerateFromPassword([]byte("admin"), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(`UPDATE users SET password_hash=?, role='admin' WHERE username='admin'`, string(adminHash))
+	if err != nil {
+		return err
+	}
+	var adminExists int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM users WHERE username='admin'`).Scan(&adminExists); err != nil {
+		return err
+	}
+	if adminExists == 0 {
+		if _, err := db.Exec(`INSERT INTO users(id, username, password_hash, role) VALUES(lower(hex(randomblob(16))),'admin',?,'admin')`, string(adminHash)); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -81,7 +116,11 @@ func main() {
 	h := &handlers.Handler{Auth: &services.AuthService{Users: users, JWTSecret: env("JWT_SECRET", "supersecret")}, Cars: cars, Extras: extras, Reservations: reservations, ReservationService: &services.ReservationService{Cars: cars, Reservations: reservations, Extras: extras}}
 
 	r := gin.Default()
-	r.Use(cors.New(cors.Config{AllowOrigins: []string{env("CORS_ORIGIN", "http://localhost:5173")}, AllowHeaders: []string{"Authorization", "Content-Type"}, AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}}))
+	r.Use(cors.New(cors.Config{
+		AllowOrigins: corsOrigins(),
+		AllowHeaders: []string{"Authorization", "Content-Type"},
+		AllowMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+	}))
 	api := r.Group("/api")
 	api.POST("/auth/register", h.Register)
 	api.POST("/auth/login", h.Login)
