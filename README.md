@@ -18,6 +18,8 @@ Full-stack rent-a-car app with React+TypeScript frontend and Go+Gin backend.
    - `npm install`
    - `npm run dev`
 
+Landing page map uses free OpenStreetMap tiles (Leaflet), so no API key is required.
+
 Backend runs migrations and seed automatically at startup when DB is empty.
 
 ## Routes

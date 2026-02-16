@@ -49,3 +49,24 @@ type Reservation struct {
 	Car             *Car      `json:"car,omitempty"`
 	Username        string    `json:"username,omitempty"`
 }
+
+type AuditLog struct {
+	ID        string    `json:"id"`
+	ActorID   string    `json:"actorId"`
+	ActorName string    `json:"actorName"`
+	Action    string    `json:"action"`
+	Entity    string    `json:"entity"`
+	EntityID  string    `json:"entityId"`
+	Details   string    `json:"details"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+type Review struct {
+	ID        string    `json:"id"`
+	CarID     string    `json:"carId"`
+	UserID    string    `json:"userId"`
+	Username  string    `json:"username"`
+	Rating    int       `json:"rating"`
+	Comment   string    `json:"comment"`
+	CreatedAt time.Time `json:"createdAt"`
+}

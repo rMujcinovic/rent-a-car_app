@@ -3,6 +3,7 @@ package services
 import (
 	"database/sql"
 	"errors"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -11,17 +12,23 @@ import (
 	"rentacar/backend/internal/repositories"
 )
 
+var ErrUsernameExists = errors.New("username already exists")
+
 type AuthService struct {
 	Users     *repositories.UserRepository
 	JWTSecret string
 }
 
 func (s *AuthService) Register(username, password string) error {
+	username = strings.TrimSpace(username)
 	if _, err := s.Users.FindByUsername(username); err == nil {
-		return errors.New("username already exists")
+		return ErrUsernameExists
 	}
-	hash, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	_, err := s.Users.Create(username, string(hash), "user")
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	_, err = s.Users.Create(username, string(hash), "user")
 	return err
 }
 func (s *AuthService) Login(username, password string) (string, *models.User, error) {

@@ -15,6 +15,8 @@ type UserRepository struct{ DB *sql.DB }
 type CarRepository struct{ DB *sql.DB }
 type ReservationRepository struct{ DB *sql.DB }
 type ExtraRepository struct{ DB *sql.DB }
+type AuditLogRepository struct{ DB *sql.DB }
+type ReviewRepository struct{ DB *sql.DB }
 
 func (r *UserRepository) Create(username, password, role string) (*models.User, error) {
 	id := uuid.NewString()
@@ -50,6 +52,10 @@ func (r *CarRepository) Delete(id string) error {
 	_, err := r.DB.Exec(`DELETE FROM cars WHERE id=?`, id)
 	return err
 }
+func (r *CarRepository) UpdateStatus(id, status string) error {
+	_, err := r.DB.Exec(`UPDATE cars SET status=? WHERE id=?`, status, id)
+	return err
+}
 func scanCar(rows *sql.Rows) (models.Car, error) {
 	var c models.Car
 	var images string
@@ -64,13 +70,25 @@ func (r *CarRepository) List(filters map[string]string, limit, offset int, sort 
 	args := []interface{}{}
 	for _, k := range []string{"category", "transmission", "fuel", "status"} {
 		if v := filters[k]; v != "" {
-			where = append(where, fmt.Sprintf("%s=?", k))
+			where = append(where, fmt.Sprintf("LOWER(%s)=LOWER(?)", k))
 			args = append(args, v)
 		}
 	}
+	if v := filters["brand"]; v != "" {
+		where = append(where, "LOWER(brand)=LOWER(?)")
+		args = append(args, v)
+	}
+	if v := filters["model"]; v != "" {
+		where = append(where, "LOWER(model) LIKE LOWER(?)")
+		args = append(args, "%"+v+"%")
+	}
 	if q := filters["q"]; q != "" {
-		where = append(where, "(brand LIKE ? OR model LIKE ?)")
-		args = append(args, "%"+q+"%", "%"+q+"%")
+		terms := strings.Fields(strings.ToLower(strings.TrimSpace(q)))
+		for _, term := range terms {
+			// Match token at start of full name or start of any word inside full name (brand + model).
+			where = append(where, "(LOWER(brand || ' ' || model) LIKE ? OR LOWER(brand || ' ' || model) LIKE ?)")
+			args = append(args, term+"%", "% "+term+"%")
+		}
 	}
 	if v := filters["minPrice"]; v != "" {
 		where = append(where, "daily_price>=?")
@@ -86,6 +104,14 @@ func (r *CarRepository) List(filters map[string]string, limit, offset int, sort 
 	}
 	if v := filters["maxYear"]; v != "" {
 		where = append(where, "year<=?")
+		args = append(args, v)
+	}
+	if v := filters["minMileage"]; v != "" {
+		where = append(where, "mileage>=?")
+		args = append(args, v)
+	}
+	if v := filters["maxMileage"]; v != "" {
+		where = append(where, "mileage<=?")
 		args = append(args, v)
 	}
 	if v := filters["seats"]; v != "" {
@@ -204,6 +230,28 @@ func (r *ReservationRepository) UpdateStatus(id, status string) error {
 	_, err := r.DB.Exec(`UPDATE reservations SET status=? WHERE id=?`, status, id)
 	return err
 }
+func (r *ReservationRepository) HasBlockingForCar(carID string) (bool, error) {
+	row := r.DB.QueryRow(`SELECT COUNT(*) FROM reservations WHERE car_id=? AND status IN ('pending','approved','active')`, carID)
+	var c int
+	err := row.Scan(&c)
+	return c > 0, err
+}
+func (r *ReservationRepository) ListBlockedRangesByCar(carID string) ([]models.Reservation, error) {
+	rows, err := r.DB.Query(`SELECT id,car_id,user_id,start_date,end_date,pickup_location,dropoff_location,notes,status,total_price,created_at FROM reservations WHERE car_id=? AND status IN ('pending','approved','active') ORDER BY start_date ASC`, carID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []models.Reservation{}
+	for rows.Next() {
+		var re models.Reservation
+		if err := rows.Scan(&re.ID, &re.CarID, &re.UserID, &re.StartDate, &re.EndDate, &re.PickupLocation, &re.DropoffLocation, &re.Notes, &re.Status, &re.TotalPrice, &re.CreatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, re)
+	}
+	return out, nil
+}
 func (r *ReservationRepository) List(userID string, all bool) ([]models.Reservation, error) {
 	q := `SELECT r.id,r.car_id,r.user_id,r.start_date,r.end_date,r.pickup_location,r.dropoff_location,r.notes,r.status,r.total_price,r.created_at,u.username,c.brand,c.model,c.daily_price
 	FROM reservations r JOIN users u ON u.id=r.user_id JOIN cars c ON c.id=r.car_id`
@@ -263,4 +311,68 @@ func (r *ReservationRepository) ExtrasForReservation(resID string) ([]models.Ext
 		out = append(out, e)
 	}
 	return out, nil
+}
+
+func (r *AuditLogRepository) Create(actorID, actorName, action, entity, entityID, details string) error {
+	_, err := r.DB.Exec(`INSERT INTO audit_logs(id, actor_id, actor_name, action, entity, entity_id, details) VALUES(?,?,?,?,?,?,?)`,
+		uuid.NewString(), actorID, actorName, action, entity, entityID, details)
+	return err
+}
+
+func (r *AuditLogRepository) ListRecent(limit int) ([]models.AuditLog, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	rows, err := r.DB.Query(`SELECT id,actor_id,actor_name,action,entity,entity_id,details,created_at FROM audit_logs ORDER BY created_at DESC LIMIT ?`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []models.AuditLog{}
+	for rows.Next() {
+		var a models.AuditLog
+		if err := rows.Scan(&a.ID, &a.ActorID, &a.ActorName, &a.Action, &a.Entity, &a.EntityID, &a.Details, &a.CreatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, a)
+	}
+	return out, nil
+}
+
+func (r *ReviewRepository) ListByCar(carID string) ([]models.Review, float64, int, error) {
+	rows, err := r.DB.Query(`
+		SELECT rv.id, rv.car_id, rv.user_id, u.username, rv.rating, COALESCE(rv.comment, ''), rv.created_at
+		FROM reviews rv
+		JOIN users u ON u.id = rv.user_id
+		WHERE rv.car_id=?
+		ORDER BY rv.created_at DESC`, carID)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	defer rows.Close()
+	items := []models.Review{}
+	for rows.Next() {
+		var it models.Review
+		if err := rows.Scan(&it.ID, &it.CarID, &it.UserID, &it.Username, &it.Rating, &it.Comment, &it.CreatedAt); err != nil {
+			return nil, 0, 0, err
+		}
+		items = append(items, it)
+	}
+
+	var avg sql.NullFloat64
+	var total int
+	if err := r.DB.QueryRow(`SELECT AVG(CAST(rating as REAL)), COUNT(*) FROM reviews WHERE car_id=?`, carID).Scan(&avg, &total); err != nil {
+		return nil, 0, 0, err
+	}
+	avgRating := 0.0
+	if avg.Valid {
+		avgRating = avg.Float64
+	}
+	return items, avgRating, total, nil
+}
+
+func (r *ReviewRepository) Create(carID, userID string, rating int, comment string) error {
+	_, err := r.DB.Exec(`INSERT INTO reviews(id, car_id, user_id, rating, comment) VALUES(?,?,?,?,?)`,
+		uuid.NewString(), carID, userID, rating, comment)
+	return err
 }
