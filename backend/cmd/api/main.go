@@ -188,8 +188,8 @@ func seedDev(db *sql.DB) error {
 			_, _ = db.Exec(`INSERT INTO extras(id,name,price_per_day) VALUES(lower(hex(randomblob(16))),?,?)`, p[0], p[1])
 		}
 		_, _ = db.Exec(`INSERT INTO cars(id,brand,model,year,category,transmission,fuel,seats,daily_price,status,mileage,description,images) VALUES
-	(lower(hex(randomblob(16))),'Toyota','Corolla',2022,'sedan','automatic','gasoline',5,55,'available',32000,'Reliable city sedan','["https://images.unsplash.com/photo-1494976388531-d1058494cdd8"]'),
-	(lower(hex(randomblob(16))),'BMW','X5',2023,'suv','automatic','diesel',5,120,'available',12000,'Premium SUV','["https://images.unsplash.com/photo-1555215695-3004980ad54e"]')`)
+	(lower(hex(randomblob(16))),'Toyota','Corolla',2022,'sedan','automatic','gasoline',5,55,'available',32000,'Reliable city sedan','["https://i.gaw.to/vehicles/photos/40/27/402780-2022-toyota-corolla.jpg?1024x640","https://di-uploads-pod16.dealerinspire.com/toyotaofnorthcharlotte/uploads/2022/07/N-Charlotte-Toyota-sedan.png"]'),
+	(lower(hex(randomblob(16))),'BMW','X5',2023,'suv','automatic','diesel',5,120,'available',12000,'Premium SUV','["https://media.autoexpress.co.uk/image/private/s--X-WVjvBW--/f_auto,t_content-image-full-desktop@1/v1675682840/autoexpress/2023/02/BMW%20X5%20facelift%202023-9.jpg","https://hips.hearstapps.com/hmg-prod/images/2023-bmw-x5-interior-1660571768.jpg"]')`)
 		_, _ = db.Exec(`DELETE FROM extras WHERE LOWER(TRIM(name))='gps'`)
 		return nil
 	}
