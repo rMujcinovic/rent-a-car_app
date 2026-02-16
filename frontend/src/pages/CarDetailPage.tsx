@@ -391,7 +391,7 @@ export default function CarDetailPage() {
 					>
 						<h3 className='font-medium'>{t.reviewsTitle}</h3>
 						<div className='ml-3 flex items-center gap-2'>
-							<div className='text-sm text-slate-600 whitespace-nowrap'>
+							<div className='text-xs sm:text-sm text-slate-600'>
 								<span className='text-amber-500 mr-1'>{'\u2605'.repeat(Math.round(averageRating || 0))}</span>
 								{averageRating.toFixed(1)} ({totalReviews} {t.totalReviews})
 							</div>

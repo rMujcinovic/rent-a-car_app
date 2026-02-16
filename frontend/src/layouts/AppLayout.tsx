@@ -1,4 +1,5 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { useLanguage } from '../hooks/useLanguage'
 
@@ -26,10 +27,11 @@ const adminItems: NavItemKey[] = [
 	{ to: '/admin/reservations', key: 'reservations', icon: icon('M7 3h10M5 7h14M6 11h12M7 15h10M9 19h6') },
 ]
 
-function SidebarLink({ to, label, icon: iconNode }: NavItem) {
+function SidebarLink({ to, label, icon: iconNode, onClick }: NavItem & { onClick?: () => void }) {
 	return (
 		<NavLink
 			to={to}
+			onClick={onClick}
 			className={({ isActive }) =>
 				`flex items-center gap-3 rounded-xl px-3 py-2.5 transition ${
 					isActive ? 'bg-blue-600 text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
@@ -45,6 +47,8 @@ function SidebarLink({ to, label, icon: iconNode }: NavItem) {
 export default function AppLayout() {
 	const { user, logout } = useAuth()
 	const { lang, setLang } = useLanguage()
+	const { pathname } = useLocation()
+	const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 	const t = lang === 'bs'
 		? {
 			navigation: 'Navigacija',
@@ -88,6 +92,10 @@ export default function AppLayout() {
 		icon: item.icon,
 	}))
 
+	useEffect(() => {
+		setMobileMenuOpen(false)
+	}, [pathname])
+
 	const FlagEN = (
 		<svg viewBox='0 0 24 16' className='w-5 h-3.5 rounded-sm border border-slate-200 overflow-hidden'>
 			<rect width='24' height='16' fill='#0A3D91' />
@@ -106,78 +114,116 @@ export default function AppLayout() {
 		/>
 	)
 
+	const sidebarContent = (
+		<>
+			<div className='mb-4'>
+				<p className='text-xs uppercase tracking-wide text-slate-400'>{t.navigation}</p>
+				<div className='mt-2 space-y-1.5'>
+					{localizedUserItems.map(item => <SidebarLink key={item.to} {...item} onClick={() => setMobileMenuOpen(false)} />)}
+				</div>
+			</div>
+
+			{user?.role === 'admin' && (
+				<div className='mb-4'>
+					<p className='text-xs uppercase tracking-wide text-slate-400'>{t.admin}</p>
+					<div className='mt-2 space-y-1.5'>
+						{localizedAdminItems.map(item => <SidebarLink key={item.to} {...item} onClick={() => setMobileMenuOpen(false)} />)}
+					</div>
+				</div>
+			)}
+
+			<div className='mt-auto border-t border-slate-200 pt-4'>
+				<div className='mb-4'>
+					<p className='text-xs uppercase tracking-wide text-slate-400 mb-2'>{t.language}</p>
+					<div className='grid grid-cols-2 gap-2'>
+						<button
+							type='button'
+							onClick={() => setLang('en')}
+							className={`h-9 rounded-lg border text-sm font-medium inline-flex items-center justify-center gap-2 transition duration-200 ${
+								lang === 'en'
+									? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
+									: 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+							}`}
+						>
+							{FlagEN}
+							EN
+						</button>
+						<button
+							type='button'
+							onClick={() => setLang('bs')}
+							className={`h-9 rounded-lg border text-sm font-medium inline-flex items-center justify-center gap-2 transition duration-200 ${
+								lang === 'bs'
+									? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
+									: 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+							}`}
+						>
+							{FlagBS}
+							BS
+						</button>
+					</div>
+				</div>
+				<div className='flex items-center gap-3'>
+					<div className='w-10 h-10 rounded-full bg-slate-800 text-white grid place-items-center'>
+						<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.8' className='w-5 h-5'>
+							<path d='M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-7 8a7 7 0 0 1 14 0' strokeLinecap='round' strokeLinejoin='round' />
+						</svg>
+					</div>
+					<div>
+						<p className='text-sm font-semibold text-slate-900'>{user?.username || t.fallbackUser}</p>
+						<p className='text-xs text-slate-500 capitalize'>{user?.role === 'admin' ? 'admin' : t.roleUser}</p>
+					</div>
+				</div>
+				<button
+					onClick={logout}
+					className='mt-4 w-full rounded-xl bg-slate-900 text-white py-2.5 text-sm font-medium hover:bg-slate-700 transition'
+				>
+					{t.logout}
+				</button>
+			</div>
+		</>
+	)
+
 	return (
 		<div className='max-w-7xl mx-auto p-3 md:p-6'>
 			<div className='grid grid-cols-1 lg:grid-cols-[1fr_290px] gap-4 md:gap-6 min-h-[calc(100vh-3rem)]'>
-				<main className='rounded-2xl bg-white/90 border border-slate-200 p-3 md:p-5 shadow-sm order-2 lg:order-1'>
+				<main className='rounded-2xl bg-white/90 border border-slate-200 p-3 md:p-5 shadow-sm order-1 lg:order-1'>
+					<div className='mb-3 flex justify-start lg:hidden'>
+						<button
+							type='button'
+							onClick={() => setMobileMenuOpen(true)}
+							className='inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+							aria-label='Open navigation menu'
+						>
+							<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='h-5 w-5'>
+								<path d='M4 7h16M4 12h16M4 17h16' strokeLinecap='round' />
+							</svg>
+						</button>
+					</div>
 					<Outlet />
 				</main>
 
-				<aside className='order-1 lg:order-2 rounded-2xl border border-slate-200 bg-white/95 shadow-sm p-4 flex flex-col lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] overflow-y-auto'>
-					<div className='mb-4'>
-						<p className='text-xs uppercase tracking-wide text-slate-400'>{t.navigation}</p>
-						<div className='mt-2 space-y-1.5'>
-							{localizedUserItems.map(item => <SidebarLink key={item.to} {...item} />)}
-						</div>
-					</div>
+				<aside className='hidden lg:flex order-2 lg:order-2 rounded-2xl border border-slate-200 bg-white/95 shadow-sm p-4 flex-col lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] overflow-y-auto'>
+					{sidebarContent}
+				</aside>
+			</div>
 
-					{user?.role === 'admin' && (
-						<div className='mb-4'>
-							<p className='text-xs uppercase tracking-wide text-slate-400'>{t.admin}</p>
-							<div className='mt-2 space-y-1.5'>
-								{localizedAdminItems.map(item => <SidebarLink key={item.to} {...item} />)}
-							</div>
-						</div>
-					)}
-
-					<div className='mt-auto border-t border-slate-200 pt-4'>
-						<div className='mb-4'>
-							<p className='text-xs uppercase tracking-wide text-slate-400 mb-2'>{t.language}</p>
-							<div className='grid grid-cols-2 gap-2'>
-								<button
-									type='button'
-									onClick={() => setLang('en')}
-									className={`h-9 rounded-lg border text-sm font-medium inline-flex items-center justify-center gap-2 transition duration-200 ${
-										lang === 'en'
-											? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
-											: 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
-									}`}
-								>
-									{FlagEN}
-									EN
-								</button>
-								<button
-									type='button'
-									onClick={() => setLang('bs')}
-									className={`h-9 rounded-lg border text-sm font-medium inline-flex items-center justify-center gap-2 transition duration-200 ${
-										lang === 'bs'
-											? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
-											: 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
-									}`}
-								>
-									{FlagBS}
-									BS
-								</button>
-							</div>
-						</div>
-						<div className='flex items-center gap-3'>
-							<div className='w-10 h-10 rounded-full bg-slate-800 text-white grid place-items-center'>
-								<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.8' className='w-5 h-5'>
-									<path d='M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-7 8a7 7 0 0 1 14 0' strokeLinecap='round' strokeLinejoin='round' />
-								</svg>
-							</div>
-							<div>
-								<p className='text-sm font-semibold text-slate-900'>{user?.username || t.fallbackUser}</p>
-								<p className='text-xs text-slate-500 capitalize'>{user?.role === 'admin' ? 'admin' : t.roleUser}</p>
-							</div>
-						</div>
+			<div className={`fixed inset-0 z-40 lg:hidden transition-opacity ${mobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+				<div className='absolute inset-0 bg-slate-900/35' onClick={() => setMobileMenuOpen(false)} />
+				<aside className={`absolute inset-y-0 left-0 w-[280px] max-w-[86vw] bg-white border-r border-slate-200 shadow-xl p-4 flex flex-col overflow-y-auto transition-transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+					<div className='mb-3 flex items-center justify-between'>
+						<div />
 						<button
-							onClick={logout}
-							className='mt-4 w-full rounded-xl bg-slate-900 text-white py-2.5 text-sm font-medium hover:bg-slate-700 transition'
+							type='button'
+							onClick={() => setMobileMenuOpen(false)}
+							className='inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-700'
+							aria-label='Close navigation menu'
 						>
-							{t.logout}
+							<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='h-4 w-4'>
+								<path d='M6 6l12 12M18 6L6 18' strokeLinecap='round' />
+							</svg>
 						</button>
 					</div>
+					{sidebarContent}
 				</aside>
 			</div>
 		</div>

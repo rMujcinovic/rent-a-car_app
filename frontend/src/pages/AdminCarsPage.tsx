@@ -454,7 +454,7 @@ export default function AdminCarsPage() {
 						return
 					}
 					create.mutate(v)
-				})} className='grid grid-cols-2 md:grid-cols-4 gap-2 bg-white p-3 rounded border border-slate-200'>
+				})} className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 bg-white p-3 rounded border border-slate-200'>
 					<Input placeholder={t.brand} {...registerCreate('brand')} />
 					<Input placeholder={t.model} {...registerCreate('model')} />
 					<Input placeholder={t.year} {...registerCreate('year')} />
@@ -572,7 +572,7 @@ export default function AdminCarsPage() {
 						return
 					}
 					update.mutate({ id: editingCarId, values: v })
-				})} className='grid grid-cols-2 md:grid-cols-4 gap-2 bg-amber-50 border border-amber-200 p-3 rounded'>
+				})} className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 bg-amber-50 border border-amber-200 p-3 rounded'>
 					<Input placeholder={t.brand} {...registerEdit('brand')} />
 					<Input placeholder={t.model} {...registerEdit('model')} />
 					<Input placeholder={t.year} {...registerEdit('year')} />

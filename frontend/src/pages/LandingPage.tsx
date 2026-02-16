@@ -288,6 +288,7 @@ export default function LandingPage() {
 	const year = new Date().getFullYear()
 	const contactRef = useRef<HTMLElement | null>(null)
 	const faqRef = useRef<HTMLDivElement | null>(null)
+	const [showBackToTop, setShowBackToTop] = useState(false)
 
 	useEffect(() => {
 		const onHash = () => {
@@ -298,6 +299,13 @@ export default function LandingPage() {
 		onHash()
 		window.addEventListener('hashchange', onHash)
 		return () => window.removeEventListener('hashchange', onHash)
+	}, [])
+
+	useEffect(() => {
+		const onScroll = () => setShowBackToTop(window.scrollY > 360)
+		onScroll()
+		window.addEventListener('scroll', onScroll, { passive: true })
+		return () => window.removeEventListener('scroll', onScroll)
 	}, [])
 
 	const scrollToFaq = () => {
@@ -395,6 +403,19 @@ export default function LandingPage() {
 				year={year}
 				onToggleFaq={scrollToFaq}
 			/>
+
+			<button
+				type='button'
+				onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+				aria-label='Back to top'
+				className={`fixed bottom-5 right-5 z-[60] inline-flex h-11 w-11 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-600/35 transition-all duration-200 hover:bg-blue-500 ${
+					showBackToTop ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-2 opacity-0'
+				}`}
+			>
+				<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='h-5 w-5'>
+					<path d='M6 14l6-6 6 6' strokeLinecap='round' strokeLinejoin='round' />
+				</svg>
+			</button>
 		</div>
 	)
 }
