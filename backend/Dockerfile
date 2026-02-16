@@ -1,0 +1,29 @@
+FROM golang:1.23-alpine AS builder
+
+WORKDIR /app
+
+RUN apk add --no-cache gcc musl-dev
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+RUN CGO_ENABLED=1 GOOS=linux go build -o /app/bin/api ./cmd/api
+
+FROM alpine:3.20
+
+WORKDIR /app
+
+RUN apk add --no-cache ca-certificates
+
+COPY --from=builder /app/bin/api /app/api
+COPY --from=builder /app/migrations /app/migrations
+
+RUN mkdir -p /app/uploads
+
+ENV PORT=8080
+
+EXPOSE 8080
+
+CMD ["/app/api"]

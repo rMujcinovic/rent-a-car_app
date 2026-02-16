@@ -227,6 +227,9 @@ func main() {
 		AllowHeaders: []string{"Authorization", "Content-Type"},
 		AllowMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 	}))
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok"})
+	})
 	r.Static("/uploads", "./uploads")
 	api := r.Group("/api")
 	api.POST("/auth/register", h.Register)
