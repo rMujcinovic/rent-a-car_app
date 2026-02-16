@@ -92,7 +92,7 @@ export default function TestimonialsCarousel({
 					</svg>
 				</button>
 
-				<div className='mx-12 w-full max-w-5xl overflow-hidden' ref={emblaRef}>
+				<div className='mx-12 w-full max-w-5xl overflow-hidden py-3' ref={emblaRef}>
 					<div
 						className='flex touch-pan-y'
 						onWheel={(e) => {
@@ -112,7 +112,7 @@ export default function TestimonialsCarousel({
 									<button
 										type='button'
 										onClick={() => emblaApi?.scrollTo(i)}
-										className={`flex h-[250px] w-full flex-col rounded-2xl border border-slate-200 bg-white p-6 text-left transition-all duration-500 ease-in-out md:h-[270px] ${
+										className={`flex h-[220px] w-full flex-col rounded-2xl border border-slate-200 bg-white p-5 text-left transition-all duration-500 ease-in-out md:h-[236px] ${
 											focused
 												? `shadow-lg md:opacity-100 will-change-transform ${
 													direction === 'next'
