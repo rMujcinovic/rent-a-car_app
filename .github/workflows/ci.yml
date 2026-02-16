@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  backend-ci:
+    name: Backend (Go)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache: true
+          cache-dependency-path: backend/go.sum
+
+      - name: Go mod tidy
+        run: go mod tidy
+
+      - name: Go test
+        run: go test ./...
+
+      - name: Go vet
+        run: go vet ./...
+
+      - name: Go build
+        run: go build ./cmd/api
+
+  frontend-ci:
+    name: Frontend (React/Vite)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint (if configured)
+        run: npm run lint --if-present
+
+      - name: Typecheck (if configured)
+        run: npm run typecheck --if-present
+
+      - name: Build
+        run: npm run build
+
+  summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - backend-ci
+      - frontend-ci
+    steps:
+      - name: Report results
+        run: |
+          echo "Backend result: ${{ needs.backend-ci.result }}"
+          echo "Frontend result: ${{ needs.frontend-ci.result }}"
+          if [ "${{ needs.backend-ci.result }}" != "success" ] || [ "${{ needs.frontend-ci.result }}" != "success" ]; then
+            exit 1
+          fi
