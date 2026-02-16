@@ -92,7 +92,7 @@ export default function TestimonialsCarousel({
 					</svg>
 				</button>
 
-				<div className='mx-12 w-full max-w-5xl overflow-hidden' ref={emblaRef}>
+				<div className='mx-12 w-full max-w-5xl overflow-hidden py-3' ref={emblaRef}>
 					<div
 						className='flex touch-pan-y'
 						onWheel={(e) => {
@@ -112,9 +112,9 @@ export default function TestimonialsCarousel({
 									<button
 										type='button'
 										onClick={() => emblaApi?.scrollTo(i)}
-										className={`w-full rounded-2xl border border-slate-200 bg-white p-6 text-left transition-all duration-500 ease-in-out ${
+										className={`flex h-[220px] w-full flex-col rounded-2xl border border-slate-200 bg-white p-5 text-left transition-all duration-500 ease-in-out md:h-[236px] ${
 											focused
-												? `shadow-lg md:scale-105 md:opacity-100 will-change-transform ${
+												? `shadow-lg md:opacity-100 will-change-transform ${
 													direction === 'next'
 														? 'animate-[testimonial-roulette-next_680ms_cubic-bezier(0.22,1,0.36,1)]'
 														: 'animate-[testimonial-roulette-prev_680ms_cubic-bezier(0.22,1,0.36,1)]'
@@ -136,7 +136,16 @@ export default function TestimonialsCarousel({
 											</div>
 										</div>
 										<p className='mt-4 text-amber-500'>{stars(item.rating)}</p>
-										<p className={`mt-2 ${focused ? 'text-slate-700' : 'text-slate-600'}`}>{item.message}</p>
+										<p
+											className={`mt-2 overflow-hidden ${focused ? 'text-slate-700' : 'text-slate-600'}`}
+											style={{
+												display: '-webkit-box',
+												WebkitLineClamp: 3,
+												WebkitBoxOrient: 'vertical',
+											}}
+										>
+											{item.message}
+										</p>
 									</button>
 								</div>
 							)
