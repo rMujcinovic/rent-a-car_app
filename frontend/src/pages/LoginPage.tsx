@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { Button, Input } from '../components/UI'
+import { useState } from 'react'
 
 const schema = z.object({
 	username: z.string().min(3, 'Username must be at least 3 characters'),
@@ -14,6 +15,7 @@ const schema = z.object({
 export default function LoginPage() {
 	const nav = useNavigate()
 	const { user, login } = useAuth()
+	const [showPassword, setShowPassword] = useState(false)
 	const {
 		register,
 		handleSubmit,
@@ -64,7 +66,35 @@ export default function LoginPage() {
 						<p className='mt-1 text-xs text-rose-600'>{errors.username?.message as string}</p>
 					</div>
 					<div>
-						<Input type='password' placeholder='Password' {...register('password')} />
+						<div className='relative'>
+							<Input
+								type={showPassword ? 'text' : 'password'}
+								placeholder='Password'
+								{...register('password')}
+								className='pr-10'
+							/>
+							<button
+								type='button'
+								aria-label={showPassword ? 'Hide password' : 'Show password'}
+								onClick={() => setShowPassword(v => !v)}
+								className={`no-lift absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 transition-colors ${
+									showPassword
+										? 'bg-blue-50 text-blue-700'
+										: 'text-slate-500'
+								}`}
+							>
+								{showPassword ? (
+									<svg viewBox='0 0 24 24' className='h-5 w-5' fill='none' stroke='currentColor' strokeWidth='2'>
+										<path d='M3 3l18 18M10.6 10.6a3 3 0 0 0 4.2 4.2M9.9 4.2A10.9 10.9 0 0 1 12 4c6.3 0 10 8 10 8a18.7 18.7 0 0 1-3.2 4.2M6.6 6.6A18.8 18.8 0 0 0 2 12s3.7 8 10 8a10.8 10.8 0 0 0 5.4-1.4' strokeLinecap='round' strokeLinejoin='round' />
+									</svg>
+								) : (
+									<svg viewBox='0 0 24 24' className='h-5 w-5' fill='none' stroke='currentColor' strokeWidth='2'>
+										<path d='M2 12s3.7-8 10-8 10 8 10 8-3.7 8-10 8-10-8-10-8z' strokeLinecap='round' strokeLinejoin='round' />
+										<circle cx='12' cy='12' r='3' />
+									</svg>
+								)}
+							</button>
+						</div>
 						<p className='mt-1 text-xs text-rose-600'>{errors.password?.message as string}</p>
 					</div>
 					<Button className='w-full' disabled={isSubmitting}>Login</Button>
