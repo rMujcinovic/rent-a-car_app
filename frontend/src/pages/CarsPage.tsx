@@ -11,6 +11,9 @@ import { getWishlistIds, toggleWishlistId } from '../utils/wishlist'
 import { useLanguage } from '../hooks/useLanguage'
 
 const copy: Record<'en' | 'bs', {
+	brandName: string
+	homeLabel: string
+	carsLabel: string
 	carsTitle: string
 	searchPlaceholder: string
 	filterBtn: string
@@ -49,6 +52,9 @@ const copy: Record<'en' | 'bs', {
 	fuelElectric: string
 }> = {
 	en: {
+		brandName: 'RentACar',
+		homeLabel: 'Home',
+		carsLabel: 'Cars',
 		carsTitle: 'Cars',
 		searchPlaceholder: 'Search Brand/Model',
 		filterBtn: 'Filter',
@@ -87,6 +93,9 @@ const copy: Record<'en' | 'bs', {
 		fuelElectric: 'Electric',
 	},
 	bs: {
+		brandName: 'RentACar',
+		homeLabel: 'Pocetna',
+		carsLabel: 'Auta',
 		carsTitle: 'Auta',
 		searchPlaceholder: 'Pretraga Brend/Model',
 		filterBtn: 'Filter',
@@ -260,7 +269,16 @@ export default function CarsPage() {
 
 	return (
 		<div className='space-y-3'>
-			<h1 className='text-xl'>{t.carsTitle}</h1>
+			<div className='space-y-1'>
+				<Link to='/' className='inline-block text-2xl font-extrabold tracking-tight text-slate-900 hover:text-blue-700'>
+					{t.brandName}
+				</Link>
+				<div className='text-sm text-slate-500'>
+					<Link to='/' className='hover:text-slate-700'>{t.homeLabel}</Link>
+					<span className='px-2 text-slate-400'>/</span>
+					<span className='font-medium text-slate-700'>{t.carsLabel}</span>
+				</div>
+			</div>
 
 			<form className='flex flex-col md:flex-row gap-2' onSubmit={e => e.preventDefault()}>
 				<div className='relative flex-1'>
