@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -41,12 +42,35 @@ func corsOrigins() []string {
 	parts := strings.Split(raw, ",")
 	out := make([]string, 0, len(parts))
 	for _, p := range parts {
-		p = strings.TrimSpace(p)
+		p = normalizeOrigin(p)
 		if p != "" {
 			out = append(out, p)
 		}
 	}
 	return out
+}
+
+func normalizeOrigin(origin string) string {
+	o := strings.TrimSpace(origin)
+	o = strings.TrimSuffix(o, "/")
+	if o == "" || o == "*" {
+		return o
+	}
+	u, err := url.Parse(o)
+	if err != nil || u.Scheme == "" || u.Host == "" {
+		return o
+	}
+	return u.Scheme + "://" + u.Host
+}
+
+func isAllowedOrigin(origin string, allowed []string) bool {
+	o := normalizeOrigin(origin)
+	for _, a := range allowed {
+		if a == "*" || o == a {
+			return true
+		}
+	}
+	return false
 }
 
 func runMigrations(db *sql.DB) error {
@@ -222,10 +246,15 @@ func main() {
 	h := &handlers.Handler{Auth: &services.AuthService{Users: users, JWTSecret: env("JWT_SECRET", "supersecret")}, Cars: cars, Extras: extras, Reservations: reservations, Reviews: reviews, Audit: audit, ReservationService: &services.ReservationService{Cars: cars, Reservations: reservations, Extras: extras}}
 
 	r := gin.Default()
+	allowedOrigins := corsOrigins()
 	r.Use(cors.New(cors.Config{
-		AllowOrigins: corsOrigins(),
+		AllowOrigins: allowedOrigins,
+		AllowOriginFunc: func(origin string) bool {
+			return isAllowedOrigin(origin, allowedOrigins)
+		},
 		AllowHeaders: []string{"Authorization", "Content-Type"},
 		AllowMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		MaxAge:       12 * time.Hour,
 	}))
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
