@@ -7,7 +7,7 @@ Full-stack rent-a-car app with React+TypeScript frontend and Go+Gin backend.
 - user1 / User123!
 - user2 / User123!
 
-## Local setup
+## Local setuptre
 1. Backend
    - `cd backend`
    - `cp .env.example .env` (optional)
@@ -15,6 +15,7 @@ Full-stack rent-a-car app with React+TypeScript frontend and Go+Gin backend.
    - `go run ./cmd/api`
 2. Frontend
    - `cd frontend`
+   - `cp .env.example .env` (optional)
    - `npm install`
    - `npm run dev`
 
@@ -28,5 +29,40 @@ Backend runs migrations and seed automatically at startup when DB is empty.
 
 ## Docker Compose
 - `docker compose up`
+
+## Railway Deployment (Backend + Frontend)
+1. Push this repo to GitHub (branch you want to deploy).
+2. In Railway, create a new project from GitHub repo.
+3. Add backend service:
+   - Root directory: `backend`
+   - Uses `backend/Dockerfile`
+   - Set environment variables:
+     - `PORT=8080`
+     - `JWT_SECRET=<your-strong-secret>`
+     - `DATABASE_URL=./rentacar.db`
+     - `CORS_ORIGIN=https://your-frontend-url.up.railway.app`
+4. Add frontend service:
+   - Root directory: `frontend`
+   - Uses `frontend/Dockerfile`
+   - Set environment variable:
+     - `VITE_API_URL=https://your-backend-url.up.railway.app/api`
+5. Deploy both services and use frontend URL as your public app URL.
+
+### Required Environment Variables
+- Backend:
+  - `PORT`
+  - `JWT_SECRET`
+  - `CORS_ORIGIN`
+  - `DATABASE_URL`
+- Frontend:
+  - `VITE_API_URL`
+
+### SQLite Note (Important)
+- This project uses SQLite by default.
+- On Railway, SQLite data is ephemeral unless you attach a persistent volume to the backend service.
+- If no persistent volume is attached, database/uploads can be lost on redeploy/restart.
+
+### Health Check
+- Backend exposes `GET /health` and returns `200 OK` with `{ "status": "ok" }`.
 
 See `docs/SETUP.md` and `docs/API.md` for details.
