@@ -291,7 +291,7 @@ export default function CarsPage() {
 				</div>
 				<button
 					type='button'
-					className='px-4 py-2 rounded border bg-white inline-flex items-center gap-2'
+					className='px-4 py-2 rounded border bg-white inline-flex items-center gap-2 min-h-[44px]'
 					onClick={() => setShowFilters(v => !v)}
 				>
 					<svg viewBox='0 0 24 24' className='w-4 h-4' fill='none' stroke='currentColor' strokeWidth='2'>
@@ -387,10 +387,10 @@ export default function CarsPage() {
 					</Select>
 
 					<div className='md:col-span-4 flex gap-2'>
-						<button className='px-4 py-2 rounded bg-blue-600 text-white'>{t.applyFilters}</button>
+						<button className='px-4 py-2 rounded bg-blue-600 text-white min-h-[44px]'>{t.applyFilters}</button>
 						<button
 							type='button'
-							className='px-4 py-2 rounded border'
+							className='px-4 py-2 rounded border min-h-[44px]'
 							onClick={() => {
 								setQ('')
 								setBrand('')
@@ -411,7 +411,7 @@ export default function CarsPage() {
 				</form>
 			)}
 
-			<div className='flex min-h-[560px] flex-col'>
+			<div className='flex min-h-0 md:min-h-[560px] flex-col'>
 				<div className='grid md:grid-cols-3 gap-3'>
 					{cars.map(c => (
 						<Link key={c.id} to={`/cars/${c.id}`} className='bg-white rounded p-3 block'>
