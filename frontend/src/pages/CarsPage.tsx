@@ -268,19 +268,19 @@ export default function CarsPage() {
 	const totalPages = Math.max(1, Math.ceil((Number(data?.total) || 0) / limit))
 
 	return (
-		<div className='space-y-3'>
+		<div className='space-y-4'>
 			<div className='space-y-1'>
-				<Link to='/' className='inline-block text-2xl font-extrabold tracking-tight text-slate-900 hover:text-blue-700'>
+				<Link to='/' className='inline-block text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 hover:text-blue-700'>
 					{t.brandName}
 				</Link>
-				<div className='text-sm text-slate-500'>
+				<div className='text-sm md:text-base text-slate-500'>
 					<Link to='/' className='hover:text-slate-700'>{t.homeLabel}</Link>
 					<span className='px-2 text-slate-400'>/</span>
 					<span className='font-medium text-slate-700'>{t.carsLabel}</span>
 				</div>
 			</div>
 
-			<form className='flex flex-col md:flex-row gap-2' onSubmit={e => e.preventDefault()}>
+			<form className='flex flex-col md:flex-row gap-2.5' onSubmit={e => e.preventDefault()}>
 				<div className='relative flex-1'>
 					<div className='absolute left-3 top-1/2 -translate-y-1/2 text-slate-500'>
 						<svg viewBox='0 0 24 24' className='w-4 h-4' fill='none' stroke='currentColor' strokeWidth='2'>
@@ -291,7 +291,7 @@ export default function CarsPage() {
 				</div>
 				<button
 					type='button'
-					className='px-4 py-2 rounded border bg-white inline-flex items-center gap-2'
+					className='px-4 py-2 rounded border bg-white inline-flex items-center gap-2 min-h-[44px] text-sm md:text-base'
 					onClick={() => setShowFilters(v => !v)}
 				>
 					<svg viewBox='0 0 24 24' className='w-4 h-4' fill='none' stroke='currentColor' strokeWidth='2'>
@@ -308,7 +308,7 @@ export default function CarsPage() {
 
 			{showFilters && (
 				<form
-					className='grid grid-cols-1 md:grid-cols-4 gap-2 bg-white p-3 rounded-xl border border-slate-200'
+					className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2.5 bg-white p-3 md:p-4 rounded-xl border border-slate-200'
 					onSubmit={e => {
 						e.preventDefault()
 						const validationError = validateFilters()
@@ -386,11 +386,11 @@ export default function CarsPage() {
 						<option value='year'>{t.sortYear}</option>
 					</Select>
 
-					<div className='md:col-span-4 flex gap-2'>
-						<button className='px-4 py-2 rounded bg-blue-600 text-white'>{t.applyFilters}</button>
+					<div className='md:col-span-2 xl:col-span-4 flex gap-2'>
+						<button className='px-4 py-2 rounded bg-blue-600 text-white min-h-[44px] text-sm md:text-base'>{t.applyFilters}</button>
 						<button
 							type='button'
-							className='px-4 py-2 rounded border'
+							className='px-4 py-2 rounded border min-h-[44px] text-sm md:text-base'
 							onClick={() => {
 								setQ('')
 								setBrand('')
@@ -411,14 +411,14 @@ export default function CarsPage() {
 				</form>
 			)}
 
-			<div className='flex min-h-[560px] flex-col'>
-				<div className='grid md:grid-cols-3 gap-3'>
+			<div className='flex min-h-0 md:min-h-[560px] flex-col'>
+				<div className='grid sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4'>
 					{cars.map(c => (
-						<Link key={c.id} to={`/cars/${c.id}`} className='bg-white rounded p-3 block'>
+						<Link key={c.id} to={`/cars/${c.id}`} className='bg-white rounded-xl p-3 md:p-4 block border border-slate-200'>
 							<div className='relative'>
 								<img
 									src={resolveImageSrc(c.images?.[0])}
-									className={`h-36 w-full object-cover rounded transition ${c.status === 'rented' ? 'grayscale opacity-60' : ''}`}
+									className={`h-40 md:h-44 w-full object-cover rounded-lg transition ${c.status === 'rented' ? 'grayscale opacity-60' : ''}`}
 								/>
 								{c.status === 'rented' && (
 									<span className='absolute top-2 left-2 text-xs px-2 py-1 rounded bg-amber-500 text-white'>
@@ -439,15 +439,15 @@ export default function CarsPage() {
 										setWishlistIds(next)
 										toast.success(wasInWishlist ? t.removed : t.added, { duration: 1200 })
 									}}
-									className={`absolute top-2 right-2 grid place-items-center w-8 h-8 rounded-full bg-white/90 border border-slate-200 hover:bg-white transition-transform duration-200 active:scale-90 ${wishlistIds.includes(c.id) ? 'text-rose-500' : 'text-slate-600'} ${bumpId === c.id ? 'scale-125' : ''}`}
+									className={`absolute top-2 right-2 grid place-items-center w-9 h-9 rounded-full bg-white/90 border border-slate-200 hover:bg-white transition-transform duration-200 active:scale-90 ${wishlistIds.includes(c.id) ? 'text-rose-500' : 'text-slate-600'} ${bumpId === c.id ? 'scale-125' : ''}`}
 								>
 									<svg viewBox='0 0 24 24' className='w-4 h-4' fill={wishlistIds.includes(c.id) ? 'currentColor' : 'none'} stroke='currentColor' strokeWidth='2'>
 										<path d='M12 21s-6.7-4.35-9.33-7.23C.6 11.56.9 8.2 3.4 6.4a5.2 5.2 0 0 1 6.56.52L12 8.9l2.04-1.99a5.2 5.2 0 0 1 6.56-.52c2.5 1.8 2.8 5.16.73 7.37C18.7 16.65 12 21 12 21z' strokeLinecap='round' strokeLinejoin='round' />
 									</svg>
 								</button>
 							</div>
-							<h2>{c.brand} {c.model}</h2>
-							<p>${c.dailyPrice}{t.perDay}</p>
+							<h2 className='mt-2 text-base md:text-lg font-semibold'>{c.brand} {c.model}</h2>
+							<p className='text-sm md:text-base'>${c.dailyPrice}{t.perDay}</p>
 						</Link>
 					))}
 				</div>
@@ -455,6 +455,7 @@ export default function CarsPage() {
 
 				<div className='mt-auto pt-4 flex items-center justify-center gap-2'>
 					<button
+						className='px-3 py-2 rounded border bg-white min-h-[40px] md:min-h-[44px] text-sm md:text-base disabled:opacity-60'
 						disabled={page <= 1}
 						onClick={() => {
 							const next = new URLSearchParams(sp)
@@ -466,6 +467,7 @@ export default function CarsPage() {
 					</button>
 					<span className='px-2 py-1 text-sm text-slate-600'>{t.page} {page} / {totalPages}</span>
 					<button
+						className='px-3 py-2 rounded border bg-white min-h-[40px] md:min-h-[44px] text-sm md:text-base disabled:opacity-60'
 						disabled={page >= totalPages}
 						onClick={() => {
 							const next = new URLSearchParams(sp)
