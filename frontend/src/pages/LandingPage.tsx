@@ -187,7 +187,7 @@ function LanguageToggle({
 			<button
 				type='button'
 				onClick={() => setOpen(v => !v)}
-				className='inline-flex h-10 md:h-11 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 md:px-4 text-sm md:text-base font-medium text-slate-800 shadow-sm hover:bg-slate-50'
+				className='inline-flex h-10 lg:h-9 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 lg:px-3 text-base lg:text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-50'
 			>
 				{lang === 'en' ? <FlagEN /> : <FlagBS />}
 				<span>{lang.toUpperCase()}</span>
@@ -206,7 +206,7 @@ function LanguageToggle({
 						setLang('en')
 						setOpen(false)
 					}}
-					className={`inline-flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm md:text-base hover:bg-slate-50 rounded-t-lg ${lang === 'en' ? 'text-blue-700 font-semibold' : 'text-slate-700'}`}
+					className={`inline-flex w-full items-center gap-2 px-3 py-2.5 lg:py-2 text-left text-base lg:text-sm hover:bg-slate-50 rounded-t-lg ${lang === 'en' ? 'text-blue-700 font-semibold' : 'text-slate-700'}`}
 				>
 					<FlagEN /> EN
 				</button>
@@ -216,7 +216,7 @@ function LanguageToggle({
 						setLang('bs')
 						setOpen(false)
 					}}
-					className={`inline-flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm md:text-base hover:bg-slate-50 rounded-b-lg ${lang === 'bs' ? 'text-blue-700 font-semibold' : 'text-slate-700'}`}
+					className={`inline-flex w-full items-center gap-2 px-3 py-2.5 lg:py-2 text-left text-base lg:text-sm hover:bg-slate-50 rounded-b-lg ${lang === 'bs' ? 'text-blue-700 font-semibold' : 'text-slate-700'}`}
 				>
 					<FlagBS /> BS
 				</button>
@@ -328,14 +328,14 @@ export default function LandingPage() {
 						<button
 							type='button'
 							onClick={() => navigate('/register')}
-							className='rounded-lg border border-slate-300 bg-white px-4 md:px-5 py-2.5 text-sm md:text-base font-medium text-slate-800 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500'
+							className='rounded-lg border border-slate-300 bg-white px-4 lg:px-4 py-2.5 lg:py-2 text-base lg:text-sm font-medium text-slate-800 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500'
 						>
 							{t.register}
 						</button>
 						<button
 							type='button'
 							onClick={() => navigate('/login')}
-							className='rounded-lg border border-slate-300 bg-white px-4 md:px-5 py-2.5 text-sm md:text-base font-medium text-slate-800 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500'
+							className='rounded-lg border border-slate-300 bg-white px-4 lg:px-4 py-2.5 lg:py-2 text-base lg:text-sm font-medium text-slate-800 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500'
 						>
 							{t.login}
 						</button>
