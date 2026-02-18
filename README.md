@@ -39,7 +39,7 @@ Backend runs migrations and seed automatically at startup when DB is empty.
    - Set environment variables:
      - `PORT=8080`
      - `JWT_SECRET=<your-strong-secret>`
-     - `DATABASE_URL=./rentacar.db`
+     - `DATABASE_URL=<Railway PostgreSQL DATABASE_URL>`
      - `CORS_ORIGIN=https://your-frontend-url.up.railway.app`
 4. Add frontend service:
    - Root directory: `frontend`
@@ -59,10 +59,11 @@ Backend runs migrations and seed automatically at startup when DB is empty.
 
 ### SQLite Note (Important)
 - This project uses SQLite by default.
-- On Railway, SQLite data is ephemeral unless you attach a persistent volume to the backend service.
-- If no persistent volume is attached, database/uploads can be lost on redeploy/restart.
+- For production on Railway, use PostgreSQL service and set `DATABASE_URL` from that service.
+- SQLite on Railway is ephemeral unless you attach a persistent volume to backend service.
+- Without persistent volume, SQLite database/uploads can be lost on redeploy/restart.
 
 ### Health Check
-- Backend exposes `GET /health` and returns `200 OK` with `{ "status": "ok" }`.
 
+- Backend exposes `GET /health` and returns `200 OK` with `{ "status": "ok" }`.
 See `docs/SETUP.md` and `docs/API.md` for details.

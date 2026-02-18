@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -18,16 +19,39 @@ type ExtraRepository struct{ DB *sql.DB }
 type AuditLogRepository struct{ DB *sql.DB }
 type ReviewRepository struct{ DB *sql.DB }
 
+var usePostgres = func() bool {
+	dsn := strings.ToLower(strings.TrimSpace(os.Getenv("DATABASE_URL")))
+	return strings.HasPrefix(dsn, "postgres://") || strings.HasPrefix(dsn, "postgresql://")
+}()
+
+func bind(q string) string {
+	if !usePostgres || !strings.Contains(q, "?") {
+		return q
+	}
+	var b strings.Builder
+	b.Grow(len(q) + 8)
+	n := 1
+	for i := 0; i < len(q); i++ {
+		if q[i] == '?' {
+			b.WriteString(fmt.Sprintf("$%d", n))
+			n++
+			continue
+		}
+		b.WriteByte(q[i])
+	}
+	return b.String()
+}
+
 func (r *UserRepository) Create(username, password, role string) (*models.User, error) {
 	id := uuid.NewString()
-	_, err := r.DB.Exec(`INSERT INTO users(id, username, password_hash, role) VALUES(?,?,?,?)`, id, username, password, role)
+	_, err := r.DB.Exec(bind(`INSERT INTO users(id, username, password_hash, role) VALUES(?,?,?,?)`), id, username, password, role)
 	if err != nil {
 		return nil, err
 	}
 	return &models.User{ID: id, Username: username, Role: role, CreatedAt: time.Now().UTC()}, nil
 }
 func (r *UserRepository) FindByUsername(username string) (*models.User, error) {
-	row := r.DB.QueryRow(`SELECT id, username, password_hash, role, created_at FROM users WHERE username=?`, username)
+	row := r.DB.QueryRow(bind(`SELECT id, username, password_hash, role, created_at FROM users WHERE username=?`), username)
 	u := models.User{}
 	if err := row.Scan(&u.ID, &u.Username, &u.Password, &u.Role, &u.CreatedAt); err != nil {
 		return nil, err
@@ -38,22 +62,22 @@ func (r *UserRepository) FindByUsername(username string) (*models.User, error) {
 func (r *CarRepository) Create(car *models.Car) error {
 	car.ID = uuid.NewString()
 	img, _ := json.Marshal(car.Images)
-	_, err := r.DB.Exec(`INSERT INTO cars(id, brand, model, year, category, transmission, fuel, seats, daily_price, status, mileage, description, images)
-	VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`, car.ID, car.Brand, car.Model, car.Year, car.Category, car.Transmission, car.Fuel, car.Seats, car.DailyPrice, car.Status, car.Mileage, car.Description, string(img))
+	_, err := r.DB.Exec(bind(`INSERT INTO cars(id, brand, model, year, category, transmission, fuel, seats, daily_price, status, mileage, description, images)
+	VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`), car.ID, car.Brand, car.Model, car.Year, car.Category, car.Transmission, car.Fuel, car.Seats, car.DailyPrice, car.Status, car.Mileage, car.Description, string(img))
 	return err
 }
 func (r *CarRepository) Update(id string, car *models.Car) error {
 	img, _ := json.Marshal(car.Images)
-	_, err := r.DB.Exec(`UPDATE cars SET brand=?, model=?, year=?, category=?, transmission=?, fuel=?, seats=?, daily_price=?, status=?, mileage=?, description=?, images=? WHERE id=?`,
+	_, err := r.DB.Exec(bind(`UPDATE cars SET brand=?, model=?, year=?, category=?, transmission=?, fuel=?, seats=?, daily_price=?, status=?, mileage=?, description=?, images=? WHERE id=?`),
 		car.Brand, car.Model, car.Year, car.Category, car.Transmission, car.Fuel, car.Seats, car.DailyPrice, car.Status, car.Mileage, car.Description, string(img), id)
 	return err
 }
 func (r *CarRepository) Delete(id string) error {
-	_, err := r.DB.Exec(`DELETE FROM cars WHERE id=?`, id)
+	_, err := r.DB.Exec(bind(`DELETE FROM cars WHERE id=?`), id)
 	return err
 }
 func (r *CarRepository) UpdateStatus(id, status string) error {
-	_, err := r.DB.Exec(`UPDATE cars SET status=? WHERE id=?`, status, id)
+	_, err := r.DB.Exec(bind(`UPDATE cars SET status=? WHERE id=?`), status, id)
 	return err
 }
 func scanCar(rows *sql.Rows) (models.Car, error) {
@@ -127,11 +151,11 @@ func (r *CarRepository) List(filters map[string]string, limit, offset int, sort 
 		order = "year DESC"
 	}
 	w := strings.Join(where, " AND ")
-	countRow := r.DB.QueryRow("SELECT COUNT(*) FROM cars WHERE "+w, args...)
+	countRow := r.DB.QueryRow(bind("SELECT COUNT(*) FROM cars WHERE "+w), args...)
 	var total int
 	_ = countRow.Scan(&total)
 	args2 := append(args, limit, offset)
-	rows, err := r.DB.Query("SELECT id, brand, model, year, category, transmission, fuel, seats, daily_price, status, mileage, description, images, created_at FROM cars WHERE "+w+" ORDER BY "+order+" LIMIT ? OFFSET ?", args2...)
+	rows, err := r.DB.Query(bind("SELECT id, brand, model, year, category, transmission, fuel, seats, daily_price, status, mileage, description, images, created_at FROM cars WHERE "+w+" ORDER BY "+order+" LIMIT ? OFFSET ?"), args2...)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -147,7 +171,7 @@ func (r *CarRepository) List(filters map[string]string, limit, offset int, sort 
 	return out, total, nil
 }
 func (r *CarRepository) GetByID(id string) (*models.Car, error) {
-	rows, err := r.DB.Query("SELECT id, brand, model, year, category, transmission, fuel, seats, daily_price, status, mileage, description, images, created_at FROM cars WHERE id=?", id)
+	rows, err := r.DB.Query(bind("SELECT id, brand, model, year, category, transmission, fuel, seats, daily_price, status, mileage, description, images, created_at FROM cars WHERE id=?"), id)
 	if err != nil {
 		return nil, err
 	}
@@ -188,7 +212,7 @@ func (r *ExtraRepository) ByIDs(ids []string) ([]models.Extra, error) {
 	for i, v := range ids {
 		args[i] = v
 	}
-	rows, err := r.DB.Query("SELECT id,name,price_per_day FROM extras WHERE id IN ("+ph+")", args...)
+	rows, err := r.DB.Query(bind("SELECT id,name,price_per_day FROM extras WHERE id IN ("+ph+")"), args...)
 	if err != nil {
 		return nil, err
 	}
@@ -205,14 +229,14 @@ func (r *ExtraRepository) ByIDs(ids []string) ([]models.Extra, error) {
 func (r *ReservationRepository) Create(res *models.Reservation, extraIDs []string) error {
 	res.ID = uuid.NewString()
 	tx, _ := r.DB.Begin()
-	_, err := tx.Exec(`INSERT INTO reservations(id, car_id, user_id, start_date, end_date, pickup_location, dropoff_location, notes, status, total_price)
-	VALUES(?,?,?,?,?,?,?,?,?,?)`, res.ID, res.CarID, res.UserID, res.StartDate, res.EndDate, res.PickupLocation, res.DropoffLocation, res.Notes, res.Status, res.TotalPrice)
+	_, err := tx.Exec(bind(`INSERT INTO reservations(id, car_id, user_id, start_date, end_date, pickup_location, dropoff_location, notes, status, total_price)
+	VALUES(?,?,?,?,?,?,?,?,?,?)`), res.ID, res.CarID, res.UserID, res.StartDate, res.EndDate, res.PickupLocation, res.DropoffLocation, res.Notes, res.Status, res.TotalPrice)
 	if err != nil {
 		_ = tx.Rollback()
 		return err
 	}
 	for _, e := range extraIDs {
-		_, err = tx.Exec(`INSERT INTO reservation_extras(reservation_id, extra_id) VALUES(?,?)`, res.ID, e)
+		_, err = tx.Exec(bind(`INSERT INTO reservation_extras(reservation_id, extra_id) VALUES(?,?)`), res.ID, e)
 		if err != nil {
 			_ = tx.Rollback()
 			return err
@@ -221,23 +245,23 @@ func (r *ReservationRepository) Create(res *models.Reservation, extraIDs []strin
 	return tx.Commit()
 }
 func (r *ReservationRepository) HasOverlap(carID string, start, end time.Time) (bool, error) {
-	row := r.DB.QueryRow(`SELECT COUNT(*) FROM reservations WHERE car_id=? AND status IN ('pending','approved','active') AND NOT (end_date <= ? OR start_date >= ?)`, carID, start, end)
+	row := r.DB.QueryRow(bind(`SELECT COUNT(*) FROM reservations WHERE car_id=? AND status IN ('pending','approved','active') AND NOT (end_date <= ? OR start_date >= ?)`), carID, start, end)
 	var c int
 	err := row.Scan(&c)
 	return c > 0, err
 }
 func (r *ReservationRepository) UpdateStatus(id, status string) error {
-	_, err := r.DB.Exec(`UPDATE reservations SET status=? WHERE id=?`, status, id)
+	_, err := r.DB.Exec(bind(`UPDATE reservations SET status=? WHERE id=?`), status, id)
 	return err
 }
 func (r *ReservationRepository) HasBlockingForCar(carID string) (bool, error) {
-	row := r.DB.QueryRow(`SELECT COUNT(*) FROM reservations WHERE car_id=? AND status IN ('pending','approved','active')`, carID)
+	row := r.DB.QueryRow(bind(`SELECT COUNT(*) FROM reservations WHERE car_id=? AND status IN ('pending','approved','active')`), carID)
 	var c int
 	err := row.Scan(&c)
 	return c > 0, err
 }
 func (r *ReservationRepository) ListBlockedRangesByCar(carID string) ([]models.Reservation, error) {
-	rows, err := r.DB.Query(`SELECT id,car_id,user_id,start_date,end_date,pickup_location,dropoff_location,notes,status,total_price,created_at FROM reservations WHERE car_id=? AND status IN ('pending','approved','active') ORDER BY start_date ASC`, carID)
+	rows, err := r.DB.Query(bind(`SELECT id,car_id,user_id,start_date,end_date,pickup_location,dropoff_location,notes,status,total_price,created_at FROM reservations WHERE car_id=? AND status IN ('pending','approved','active') ORDER BY start_date ASC`), carID)
 	if err != nil {
 		return nil, err
 	}
@@ -261,7 +285,7 @@ func (r *ReservationRepository) List(userID string, all bool) ([]models.Reservat
 		args = append(args, userID)
 	}
 	q += " ORDER BY r.created_at DESC LIMIT 50"
-	rows, err := r.DB.Query(q, args...)
+	rows, err := r.DB.Query(bind(q), args...)
 	if err != nil {
 		return nil, err
 	}
@@ -279,7 +303,7 @@ func (r *ReservationRepository) List(userID string, all bool) ([]models.Reservat
 	return out, nil
 }
 func (r *ReservationRepository) GetByID(id string) (*models.Reservation, error) {
-	row := r.DB.QueryRow(`SELECT id,car_id,user_id,start_date,end_date,pickup_location,dropoff_location,notes,status,total_price,created_at FROM reservations WHERE id=?`, id)
+	row := r.DB.QueryRow(bind(`SELECT id,car_id,user_id,start_date,end_date,pickup_location,dropoff_location,notes,status,total_price,created_at FROM reservations WHERE id=?`), id)
 	var re models.Reservation
 	if err := row.Scan(&re.ID, &re.CarID, &re.UserID, &re.StartDate, &re.EndDate, &re.PickupLocation, &re.DropoffLocation, &re.Notes, &re.Status, &re.TotalPrice, &re.CreatedAt); err != nil {
 		return nil, err
@@ -299,7 +323,7 @@ func (r *ReservationRepository) Metrics() (map[string]float64, error) {
 	return m, nil
 }
 func (r *ReservationRepository) ExtrasForReservation(resID string) ([]models.Extra, error) {
-	rows, err := r.DB.Query(`SELECT e.id,e.name,e.price_per_day FROM reservation_extras re JOIN extras e ON e.id=re.extra_id WHERE re.reservation_id=?`, resID)
+	rows, err := r.DB.Query(bind(`SELECT e.id,e.name,e.price_per_day FROM reservation_extras re JOIN extras e ON e.id=re.extra_id WHERE re.reservation_id=?`), resID)
 	if err != nil {
 		return nil, err
 	}
@@ -314,7 +338,7 @@ func (r *ReservationRepository) ExtrasForReservation(resID string) ([]models.Ext
 }
 
 func (r *AuditLogRepository) Create(actorID, actorName, action, entity, entityID, details string) error {
-	_, err := r.DB.Exec(`INSERT INTO audit_logs(id, actor_id, actor_name, action, entity, entity_id, details) VALUES(?,?,?,?,?,?,?)`,
+	_, err := r.DB.Exec(bind(`INSERT INTO audit_logs(id, actor_id, actor_name, action, entity, entity_id, details) VALUES(?,?,?,?,?,?,?)`),
 		uuid.NewString(), actorID, actorName, action, entity, entityID, details)
 	return err
 }
@@ -323,7 +347,7 @@ func (r *AuditLogRepository) ListRecent(limit int) ([]models.AuditLog, error) {
 	if limit <= 0 {
 		limit = 50
 	}
-	rows, err := r.DB.Query(`SELECT id,actor_id,actor_name,action,entity,entity_id,details,created_at FROM audit_logs ORDER BY created_at DESC LIMIT ?`, limit)
+	rows, err := r.DB.Query(bind(`SELECT id,actor_id,actor_name,action,entity,entity_id,details,created_at FROM audit_logs ORDER BY created_at DESC LIMIT ?`), limit)
 	if err != nil {
 		return nil, err
 	}
@@ -340,12 +364,12 @@ func (r *AuditLogRepository) ListRecent(limit int) ([]models.AuditLog, error) {
 }
 
 func (r *ReviewRepository) ListByCar(carID string) ([]models.Review, float64, int, error) {
-	rows, err := r.DB.Query(`
+	rows, err := r.DB.Query(bind(`
 		SELECT rv.id, rv.car_id, rv.user_id, u.username, rv.rating, COALESCE(rv.comment, ''), rv.created_at
 		FROM reviews rv
 		JOIN users u ON u.id = rv.user_id
 		WHERE rv.car_id=?
-		ORDER BY rv.created_at DESC`, carID)
+		ORDER BY rv.created_at DESC`), carID)
 	if err != nil {
 		return nil, 0, 0, err
 	}
@@ -361,7 +385,7 @@ func (r *ReviewRepository) ListByCar(carID string) ([]models.Review, float64, in
 
 	var avg sql.NullFloat64
 	var total int
-	if err := r.DB.QueryRow(`SELECT AVG(CAST(rating as REAL)), COUNT(*) FROM reviews WHERE car_id=?`, carID).Scan(&avg, &total); err != nil {
+	if err := r.DB.QueryRow(bind(`SELECT AVG(CAST(rating as DOUBLE PRECISION)), COUNT(*) FROM reviews WHERE car_id=?`), carID).Scan(&avg, &total); err != nil {
 		return nil, 0, 0, err
 	}
 	avgRating := 0.0
@@ -372,7 +396,7 @@ func (r *ReviewRepository) ListByCar(carID string) ([]models.Review, float64, in
 }
 
 func (r *ReviewRepository) Create(carID, userID string, rating int, comment string) error {
-	_, err := r.DB.Exec(`INSERT INTO reviews(id, car_id, user_id, rating, comment) VALUES(?,?,?,?,?)`,
+	_, err := r.DB.Exec(bind(`INSERT INTO reviews(id, car_id, user_id, rating, comment) VALUES(?,?,?,?,?)`),
 		uuid.NewString(), carID, userID, rating, comment)
 	return err
 }

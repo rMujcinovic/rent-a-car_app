@@ -14,7 +14,9 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"rentacar/backend/internal/handlers"
 	"rentacar/backend/internal/middleware"
@@ -35,6 +37,37 @@ func sqliteDSN(raw string) string {
 		return raw + "&_busy_timeout=5000&_journal_mode=WAL"
 	}
 	return raw + "?_busy_timeout=5000&_journal_mode=WAL"
+}
+
+func usingPostgres() bool {
+	dsn := strings.ToLower(strings.TrimSpace(env("DATABASE_URL", "")))
+	return strings.HasPrefix(dsn, "postgres://") || strings.HasPrefix(dsn, "postgresql://")
+}
+
+func bind(q string) string {
+	if !usingPostgres() || !strings.Contains(q, "?") {
+		return q
+	}
+	var b strings.Builder
+	b.Grow(len(q) + 8)
+	n := 1
+	for i := 0; i < len(q); i++ {
+		if q[i] == '?' {
+			b.WriteString(fmt.Sprintf("$%d", n))
+			n++
+			continue
+		}
+		b.WriteByte(q[i])
+	}
+	return b.String()
+}
+
+func openDB() (*sql.DB, error) {
+	raw := env("DATABASE_URL", "./rentacar.db")
+	if usingPostgres() {
+		return sql.Open("pgx", raw)
+	}
+	return sql.Open("sqlite3", sqliteDSN(raw))
 }
 
 func corsOrigins() []string {
@@ -163,7 +196,7 @@ func migrateDataImages(db *sql.DB) error {
 			continue
 		}
 		b, _ := json.Marshal(imgs)
-		if _, err := db.Exec(`UPDATE cars SET images=? WHERE id=?`, string(b), item.id); err != nil {
+		if _, err := db.Exec(bind(`UPDATE cars SET images=? WHERE id=?`), string(b), item.id); err != nil {
 			return err
 		}
 	}
@@ -177,19 +210,22 @@ func seedDev(db *sql.DB) error {
 	}
 
 	if c == 0 {
-		seedUsers := []struct{ U, P, R string }{{"admin", "admin", "admin"}, {"user1", "admin", "user"}, {"user2", "admin", "user"}}
+		seedUsers := []struct{ U, P, R string }{{"admin", "admin", "admin"}, {"user1", "User123!", "user"}, {"user2", "User123!", "user"}}
 		for _, u := range seedUsers {
 			h, _ := bcrypt.GenerateFromPassword([]byte(u.P), bcrypt.DefaultCost)
-			_, _ = db.Exec(`INSERT INTO users(id, username, password_hash, role) VALUES(lower(hex(randomblob(16))),?,?,?)`, u.U, string(h), u.R)
+			_, _ = db.Exec(bind(`INSERT INTO users(id, username, password_hash, role) VALUES(?,?,?,?)`), uuid.NewString(), u.U, string(h), u.R)
 		}
 		extra := []string{"Child seat|6", "Additional driver|12", "Insurance|15"}
 		for _, e := range extra {
 			p := strings.Split(e, "|")
-			_, _ = db.Exec(`INSERT INTO extras(id,name,price_per_day) VALUES(lower(hex(randomblob(16))),?,?)`, p[0], p[1])
+			_, _ = db.Exec(bind(`INSERT INTO extras(id,name,price_per_day) VALUES(?,?,?)`), uuid.NewString(), p[0], p[1])
 		}
-		_, _ = db.Exec(`INSERT INTO cars(id,brand,model,year,category,transmission,fuel,seats,daily_price,status,mileage,description,images) VALUES
-	(lower(hex(randomblob(16))),'Toyota','Corolla',2022,'sedan','automatic','gasoline',5,55,'available',32000,'Reliable city sedan','["https://i.gaw.to/vehicles/photos/40/27/402780-2022-toyota-corolla.jpg?1024x640","https://di-uploads-pod16.dealerinspire.com/toyotaofnorthcharlotte/uploads/2022/07/N-Charlotte-Toyota-sedan.png"]'),
-	(lower(hex(randomblob(16))),'BMW','X5',2023,'suv','automatic','diesel',5,120,'available',12000,'Premium SUV','["https://media.autoexpress.co.uk/image/private/s--X-WVjvBW--/f_auto,t_content-image-full-desktop@1/v1675682840/autoexpress/2023/02/BMW%20X5%20facelift%202023-9.jpg","https://hips.hearstapps.com/hmg-prod/images/2023-bmw-x5-interior-1660571768.jpg"]')`)
+		_, _ = db.Exec(bind(`INSERT INTO cars(id,brand,model,year,category,transmission,fuel,seats,daily_price,status,mileage,description,images) VALUES
+	(?,?,?,?,?,?,?,?,?,?,?,?,?),
+	(?,?,?,?,?,?,?,?,?,?,?,?,?)`),
+			uuid.NewString(), "Toyota", "Corolla", 2022, "sedan", "automatic", "gasoline", 5, 55, "available", 32000, "Reliable city sedan", `["https://i.gaw.to/vehicles/photos/40/27/402780-2022-toyota-corolla.jpg?1024x640","https://di-uploads-pod16.dealerinspire.com/toyotaofnorthcharlotte/uploads/2022/07/N-Charlotte-Toyota-sedan.png"]`,
+			uuid.NewString(), "BMW", "X5", 2023, "suv", "automatic", "diesel", 5, 120, "available", 12000, "Premium SUV", `["https://media.autoexpress.co.uk/image/private/s--X-WVjvBW--/f_auto,t_content-image-full-desktop@1/v1675682840/autoexpress/2023/02/BMW%20X5%20facelift%202023-9.jpg","https://hips.hearstapps.com/hmg-prod/images/2023-bmw-x5-interior-1660571768.jpg"]`,
+		)
 		_, _ = db.Exec(`DELETE FROM extras WHERE LOWER(TRIM(name))='gps'`)
 		return nil
 	}
@@ -198,7 +234,7 @@ func seedDev(db *sql.DB) error {
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec(`UPDATE users SET password_hash=?, role='admin' WHERE username='admin'`, string(adminHash))
+	_, err = db.Exec(bind(`UPDATE users SET password_hash=?, role='admin' WHERE username='admin'`), string(adminHash))
 	if err != nil {
 		return err
 	}
@@ -207,7 +243,7 @@ func seedDev(db *sql.DB) error {
 		return err
 	}
 	if adminExists == 0 {
-		if _, err := db.Exec(`INSERT INTO users(id, username, password_hash, role) VALUES(lower(hex(randomblob(16))),'admin',?,'admin')`, string(adminHash)); err != nil {
+		if _, err := db.Exec(bind(`INSERT INTO users(id, username, password_hash, role) VALUES(?,?,?,'admin')`), uuid.NewString(), "admin", string(adminHash)); err != nil {
 			return err
 		}
 	}
@@ -219,7 +255,7 @@ func seedDev(db *sql.DB) error {
 }
 
 func main() {
-	db, err := sql.Open("sqlite3", sqliteDSN(env("DATABASE_URL", "./rentacar.db")))
+	db, err := openDB()
 	if err != nil {
 		log.Fatal(err)
 	}
