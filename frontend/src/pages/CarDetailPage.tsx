@@ -44,6 +44,7 @@ const copy = {
 		reviewFailed: 'Failed to submit review',
 		alreadyReviewed: 'You already reviewed this car',
 		backToCars: 'Back to cars',
+		loginRequired: 'Please login to reserve',
 	},
 	bs: {
 		loading: 'Ucitavanje...',
@@ -79,6 +80,7 @@ const copy = {
 		reviewFailed: 'Slanje recenzije nije uspjelo',
 		alreadyReviewed: 'Vec si ocijenio ovo auto',
 		backToCars: 'Nazad na auta',
+		loginRequired: 'Prijavite se da rezervisete',
 	},
 } as const
 
@@ -351,13 +353,15 @@ export default function CarDetailPage() {
 
 				<form
 					onSubmit={handleSubmit(v =>
-						m.mutate({
-							...v,
-							carId: id,
-							extraIds: Object.entries(v)
-								.filter(([k, val]) => k.startsWith('ex_') && val)
-								.map(([k]) => k.replace('ex_', '')),
-						}),
+						!user
+							? toast.error(t.loginRequired)
+							: m.mutate({
+								...v,
+								carId: id,
+								extraIds: Object.entries(v)
+									.filter(([k, val]) => k.startsWith('ex_') && val)
+									.map(([k]) => k.replace('ex_', '')),
+							}),
 					)}
 					className='bg-white rounded-xl border border-slate-200 overflow-hidden'
 				>

@@ -15,9 +15,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <Route path='/' element={<LandingPage/>}/>
   <Route path='/login' element={<LoginPage/>}/>
   <Route path='/register' element={<RegisterPage/>}/>
-  <Route element={<ProtectedRoute><AppLayout/></ProtectedRoute>}>
+  <Route element={<AppLayout/>}>
     <Route path='cars' element={<CarsPage/>}/>
     <Route path='cars/:id' element={<CarDetailPage/>}/>
+  </Route>
+  <Route element={<ProtectedRoute><AppLayout/></ProtectedRoute>}>
     <Route path='my-reservations' element={<MyReservationsPage/>}/>
     <Route path='wishlist' element={<WishlistPage/>}/>
     <Route path='admin/cars' element={<ProtectedRoute admin><AdminCarsPage/></ProtectedRoute>}/>

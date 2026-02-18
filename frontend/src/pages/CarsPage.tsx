@@ -22,6 +22,7 @@ const copy: Record<'en' | 'bs', {
 	page: string
 	added: string
 	removed: string
+	loginRequired: string
 	allBrands: string
 	modelPlaceholder: string
 	maxMileagePlaceholder: string
@@ -63,6 +64,7 @@ const copy: Record<'en' | 'bs', {
 		page: 'Page',
 		added: 'Added to wishlist',
 		removed: 'Removed from wishlist',
+		loginRequired: 'Please login to use wishlist',
 		allBrands: 'All Brands',
 		modelPlaceholder: 'Model (e.g. A4, X5)',
 		maxMileagePlaceholder: 'Max Mileage (km)',
@@ -104,6 +106,7 @@ const copy: Record<'en' | 'bs', {
 		page: 'Stranica',
 		added: 'Dodano na listu zelja',
 		removed: 'Uklonjeno sa liste zelja',
+		loginRequired: 'Prijavite se da koristite listu zelja',
 		allBrands: 'Svi Brendovi',
 		modelPlaceholder: 'Model (npr. A4, X5)',
 		maxMileagePlaceholder: 'Maks Kilometraza (km)',
@@ -431,7 +434,10 @@ export default function CarsPage() {
 									onClick={(e) => {
 										e.preventDefault()
 										e.stopPropagation()
-										if (!user?.id) return
+										if (!user?.id) {
+											toast.error(t.loginRequired)
+											return
+										}
 										setBumpId(c.id)
 										setTimeout(() => setBumpId(prev => (prev === c.id ? null : prev)), 220)
 										const wasInWishlist = wishlistIds.includes(c.id)

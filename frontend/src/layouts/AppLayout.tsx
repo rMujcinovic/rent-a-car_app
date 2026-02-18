@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { useAuth } from '../auth/AuthContext'
 import { useLanguage } from '../hooks/useLanguage'
 
@@ -27,7 +28,7 @@ const adminItems: NavItemKey[] = [
 	{ to: '/admin/reservations', key: 'reservations', icon: icon('M7 3h10M5 7h14M6 11h12M7 15h10M9 19h6') },
 ]
 
-function SidebarLink({ to, label, icon: iconNode, onClick }: NavItem & { onClick?: () => void }) {
+function SidebarLink({ to, label, icon: iconNode, onClick }: NavItem & { onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void }) {
 	return (
 		<NavLink
 			to={to}
@@ -61,6 +62,9 @@ export default function AppLayout() {
 			cars: 'Auta',
 			myReservations: 'Moje Rezervacije',
 			wishlist: 'Lista Zelja',
+			login: 'Prijava',
+			register: 'Registracija',
+			loginRequired: 'Morate se prijaviti za ovu opciju',
 			dashboard: 'Pregled',
 			manageCars: 'Upravljanje Autima',
 			reservations: 'Rezervacije',
@@ -76,6 +80,9 @@ export default function AppLayout() {
 			cars: 'Cars',
 			myReservations: 'My Reservations',
 			wishlist: 'Wishlist',
+			login: 'Login',
+			register: 'Register',
+			loginRequired: 'Please login to use this feature',
 			dashboard: 'Dashboard',
 			manageCars: 'Manage Cars',
 			reservations: 'Reservations',
@@ -91,6 +98,7 @@ export default function AppLayout() {
 		label: t[item.key as keyof typeof t] as string,
 		icon: item.icon,
 	}))
+	const guestRestrictedRoutes = ['/my-reservations', '/wishlist']
 
 	useEffect(() => {
 		setMobileMenuOpen(false)
@@ -119,7 +127,20 @@ export default function AppLayout() {
 			<div className='mb-4'>
 				<p className='text-xs uppercase tracking-wide text-slate-400'>{t.navigation}</p>
 				<div className='mt-2 space-y-1.5'>
-					{localizedUserItems.map(item => <SidebarLink key={item.to} {...item} onClick={() => setMobileMenuOpen(false)} />)}
+					{localizedUserItems.map(item => (
+						<SidebarLink
+							key={item.to}
+							{...item}
+							onClick={(e) => {
+								if (!user && guestRestrictedRoutes.includes(item.to)) {
+									e.preventDefault()
+									toast.error(t.loginRequired)
+									return
+								}
+								setMobileMenuOpen(false)
+							}}
+						/>
+					))}
 				</div>
 			</div>
 
@@ -162,23 +183,32 @@ export default function AppLayout() {
 						</button>
 					</div>
 				</div>
-				<div className='flex items-center gap-3'>
-					<div className='w-10 h-10 rounded-full bg-slate-800 text-white grid place-items-center'>
-						<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.8' className='w-5 h-5'>
-							<path d='M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-7 8a7 7 0 0 1 14 0' strokeLinecap='round' strokeLinejoin='round' />
-						</svg>
+				{user ? (
+					<>
+						<div className='flex items-center gap-3'>
+							<div className='w-10 h-10 rounded-full bg-slate-800 text-white grid place-items-center'>
+								<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.8' className='w-5 h-5'>
+									<path d='M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-7 8a7 7 0 0 1 14 0' strokeLinecap='round' strokeLinejoin='round' />
+								</svg>
+							</div>
+							<div>
+								<p className='text-sm font-semibold text-slate-900'>{user?.username || t.fallbackUser}</p>
+								<p className='text-xs text-slate-500 capitalize'>{user?.role === 'admin' ? 'admin' : t.roleUser}</p>
+							</div>
+						</div>
+						<button
+							onClick={logout}
+							className='mt-4 w-full rounded-xl bg-slate-900 text-white py-2.5 text-sm font-medium hover:bg-slate-700 transition'
+						>
+							{t.logout}
+						</button>
+					</>
+				) : (
+					<div className='grid grid-cols-2 gap-2'>
+						<Link to='/login' className='h-10 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-medium grid place-items-center hover:bg-slate-50 transition'>{t.login}</Link>
+						<Link to='/register' className='h-10 rounded-lg bg-blue-600 text-white text-sm font-medium grid place-items-center hover:bg-blue-500 transition'>{t.register}</Link>
 					</div>
-					<div>
-						<p className='text-sm font-semibold text-slate-900'>{user?.username || t.fallbackUser}</p>
-						<p className='text-xs text-slate-500 capitalize'>{user?.role === 'admin' ? 'admin' : t.roleUser}</p>
-					</div>
-				</div>
-				<button
-					onClick={logout}
-					className='mt-4 w-full rounded-xl bg-slate-900 text-white py-2.5 text-sm font-medium hover:bg-slate-700 transition'
-				>
-					{t.logout}
-				</button>
+				)}
 			</div>
 		</>
 	)
