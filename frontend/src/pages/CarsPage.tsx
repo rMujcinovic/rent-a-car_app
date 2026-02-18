@@ -50,6 +50,7 @@ const copy: Record<'en' | 'bs', {
 	fuelDiesel: string
 	fuelHybrid: string
 	fuelElectric: string
+	loginRequired: string
 }> = {
 	en: {
 		brandName: 'RentACar',
@@ -91,6 +92,7 @@ const copy: Record<'en' | 'bs', {
 		fuelDiesel: 'Diesel',
 		fuelHybrid: 'Hybrid',
 		fuelElectric: 'Electric',
+		loginRequired: 'You need to log in to use wishlist and reservations',
 	},
 	bs: {
 		brandName: 'RentACar',
@@ -132,6 +134,7 @@ const copy: Record<'en' | 'bs', {
 		fuelDiesel: 'Dizel',
 		fuelHybrid: 'Hibrid',
 		fuelElectric: 'Elektricni',
+		loginRequired: 'Morate se ulogovati za listu zelja i rezervacije',
 	},
 }
 
@@ -431,7 +434,10 @@ export default function CarsPage() {
 									onClick={(e) => {
 										e.preventDefault()
 										e.stopPropagation()
-										if (!user?.id) return
+										if (!user?.id) {
+											toast.error(t.loginRequired)
+											return
+										}
 										setBumpId(c.id)
 										setTimeout(() => setBumpId(prev => (prev === c.id ? null : prev)), 220)
 										const wasInWishlist = wishlistIds.includes(c.id)

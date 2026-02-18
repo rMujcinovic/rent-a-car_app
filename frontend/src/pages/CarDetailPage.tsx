@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/client'
 import { Button, Input } from '../components/UI'
 import { useForm } from 'react-hook-form'
@@ -43,6 +43,8 @@ const copy = {
 		reviewCreated: 'Review submitted',
 		reviewFailed: 'Failed to submit review',
 		alreadyReviewed: 'You already reviewed this car',
+		loginRequired: 'You need to log in to reserve this car',
+		backToCars: 'Back to cars',
 	},
 	bs: {
 		loading: 'Ucitavanje...',
@@ -77,6 +79,8 @@ const copy = {
 		reviewCreated: 'Recenzija je poslana',
 		reviewFailed: 'Slanje recenzije nije uspjelo',
 		alreadyReviewed: 'Vec si ocijenio ovo auto',
+		loginRequired: 'Morate se ulogovati da rezervisete auto',
+		backToCars: 'Nazad na auta',
 	},
 } as const
 
@@ -96,6 +100,7 @@ function InfoItem({ icon, label, value }: { icon: JSX.Element; label: string; va
 
 export default function CarDetailPage() {
 	const { id = '' } = useParams()
+	const navigate = useNavigate()
 	const { user } = useAuth()
 	const { lang } = useLanguage()
 	const t = copy[lang]
@@ -174,6 +179,18 @@ export default function CarDetailPage() {
 	return (
 		<div className='space-y-4 relative'>
 			<div className='space-y-3'>
+				<div className='flex items-center'>
+					<button
+						type='button'
+						onClick={() => navigate('/cars')}
+						className='inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 min-h-[42px] text-sm md:text-base text-slate-700 hover:bg-slate-50'
+					>
+						<svg viewBox='0 0 24 24' className='h-4 w-4' fill='none' stroke='currentColor' strokeWidth='2'>
+							<path d='M15 6l-6 6 6 6' strokeLinecap='round' strokeLinejoin='round' />
+						</svg>
+						{t.backToCars}
+					</button>
+				</div>
 				<div className='relative'>
 					<img
 						src={currentImage}
@@ -335,15 +352,19 @@ export default function CarDetailPage() {
 				</div>
 
 				<form
-					onSubmit={handleSubmit(v =>
+					onSubmit={handleSubmit(v => {
+						if (!user) {
+							toast.error(t.loginRequired)
+							return
+						}
 						m.mutate({
 							...v,
 							carId: id,
 							extraIds: Object.entries(v)
 								.filter(([k, val]) => k.startsWith('ex_') && val)
 								.map(([k]) => k.replace('ex_', '')),
-						}),
-					)}
+						})
+					})}
 					className='bg-white rounded-xl border border-slate-200 overflow-hidden'
 				>
 					<button
