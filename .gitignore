@@ -1,0 +1,28 @@
+# Dependencies
+frontend/node_modules/
+
+# Environment files
+backend/.env
+frontend/.env
+
+# Local databases
+backend/*.db
+backend/*.db-shm
+backend/*.db-wal
+
+# Uploaded/local runtime files
+backend/uploads/
+
+# Frontend build and cache
+frontend/dist/
+frontend/.vite/
+
+# Logs and coverage
+*.log
+coverage/
+
+# Editor / OS files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
