@@ -211,28 +211,6 @@ More details are available in:
 - Uploaded car images are served from the backend `uploads/` directory
 - The seeded admin password is intentionally simple for local/demo purposes only
 
-## Recommended README Media
-
-The README already includes GIF demos. If you want to strengthen it even more, add static screenshots as a separate section for quick scanning.
-
-Suggested section to add later:
-
-```md
-## Screenshots
-
-![Landing Page](./docs/screenshots/landing.png)
-![Cars Page](./docs/screenshots/cars.png)
-![Car Details](./docs/screenshots/car-details.png)
-![Admin Dashboard](./docs/screenshots/admin-dashboard.png)
-```
-
-If you decide to make screenshots or GIFs, a good folder structure would be:
-
-```text
-docs/
-|- screenshots/
-|- gifs/
-```
 
 ## Future Improvements
 
