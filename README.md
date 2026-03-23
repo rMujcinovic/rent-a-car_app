@@ -10,6 +10,26 @@ This application is currently intended to be run locally.
 
 The previous Railway deployment is no longer active because the free trial expired, so the live demo is not available at the moment. Everything needed to run the project locally is documented below.
 
+## Demo
+
+### Landing Page
+
+Shows the public-facing landing page and initial presentation of the application.
+
+![Landing Page Demo](./docs/gifs/landingpage.gif)
+
+### User Flow
+
+Shows the customer experience, including browsing cars, wishlist usage, reservations, and reservation tracking.
+
+![User Flow Demo](./docs/gifs/usergif.gif)
+
+### Admin Flow
+
+Shows the admin workflow, including reservation management, dashboard metrics, and audit log activity.
+
+![Admin Flow Demo](./docs/gifs/admingif.gif)
+
 ## Features
 
 - User registration and login with JWT-based authentication
@@ -193,13 +213,7 @@ More details are available in:
 
 ## Recommended README Media
 
-The README will look much stronger on GitHub if you add a few visuals. Recommended additions:
-
-- 1 hero screenshot of the landing page
-- 1 screenshot of the car listing / filtering page
-- 1 screenshot of the car details + reservation section
-- 1 screenshot of the admin dashboard
-- Optional short GIF showing the reservation flow or admin workflow
+The README already includes GIF demos. If you want to strengthen it even more, add static screenshots as a separate section for quick scanning.
 
 Suggested section to add later:
 
